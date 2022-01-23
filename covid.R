@@ -7,6 +7,8 @@ summary(as.Date(data$date))
 
 
 
+
+
 # This dataset shows cumulative cases and deaths
 
 dt <- data
