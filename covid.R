@@ -1,13 +1,17 @@
 library(data.table)
-today <- "220120"
-data <- read.csv(paste0("~/Downloads/us-counties-",today,".csv"))
+library(curl)
+## library(optparse)
+
+today <- substr(Sys.time(), 3, 10)
+filename <- paste0("~/Downloads/us-counties-",today,".csv")
+source <- "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
+curl_download(destfile = filename, source)
+data <- read.csv(filename)
 dim(data)
 head(data)
 summary(as.Date(data$date))
 
-
-
-
+args <- commandArgs()
 
 # This dataset shows cumulative cases and deaths
 
@@ -19,40 +23,10 @@ dt[, cfr := deaths / cases]
 dt[, state.county := paste0(state, ":", county)]
 dt[, id := paste0(state, ":", county, ":", fips)]
 
-# max(table(dt$fips))
-# summary(dt$date)
-
-# ids <- unique(dt$id)
-# ds <- data.frame()
-# cat(length(ids))
-# count <- 0
-# for (id. in ids) {
-#     count <- count + 1
-#     if (count %% 50 == 0)
-#         cat(count, " ")
-#     d <- dt[id==id., ]
-#     if (nrow(d)==0){
-#         cat(id., "\n")
-#         next
-#     }
-#     ## make sure sorted
-#     left.idx <- seq_len(nrow(d) - 1)
-#     right.idx <- left.idx + 1
-#     counts <- c("cases", "deaths")
-#     new.counts <- d[right.idx, counts, with=FALSE] - d[left.idx, counts, with=FALSE]
-#     names(new.counts) <- paste0("new.", counts)
-#     new.counts <- rbind(data.frame(new.cases=NA, new.deaths=NA), new.counts)
-#     d <- cbind(d, new.counts)
-#     ds <- rbind(ds, d)
-# }
-
-data.file <- paste0("~/dt_", today, ".Rdata")
-save(dt, file=data.file)
-load(data.file)
-
-# counies <- data.frame(state=c("CA", "CA", "CA", "CA", "CA", "CA", "CA", "CA", "CA"),
-#                       county=c("San Francisco", "San Mateo", "Santa Clara", "Alameda", "Contra Costa", "Marin", "Sonoma", "Solano", "Napa"))#, "Santa Cruz"))
-# counies$population <- c(870044, 765935, 1922200, 1643700, 1133247, 260295, 501317, 438530, 137744)#, 273213)
+counies <- data.frame(state=c("CA", "CA", "CA", "CA", "CA", "CA", "CA", "CA", "CA"),
+                      county=c("San Francisco", "San Mateo", "Santa Clara", "Alameda", "Contra Costa", "Marin", "Sonoma", "Solano", "Napa"))#, "Santa Cruz"))
+counies$population <- c(870044, 765935, 1922200, 1643700, 1133247, 260295, 501317, 438530, 137744)#, 273213)
+counies$city.name <- paste(counies$county)
 counies <- data.frame(state=c("FL", "FL", "WA", ##"FL",
                               "NY", "MA", "PA",
                               "CA", "AZ", "GA",
@@ -127,8 +101,10 @@ for (i in seq_len(nrow(counies))) {
 
 
 ## DELAGGED by 21 days
-
-par(mfrow = c(4, 3), mai=rep(0.4, 4), las=1, mgp=c(3,0.5,0))
+filename <- paste0("~/covid-by-county_", today, "_delag21.png")
+res <- 100
+png(filename, res=res, width=1200, height=180*ceiling(nrow(counies) / 3))
+par(mfrow = c(nrow(counies) / 3, 3), mai=rep(0.5, 4), las=1, mgp=c(3,0.5,0))
 for (i in seq_len(nrow(counies))) {
     state. <- counies[i,]$state
     county. <- counies[i,]$county
@@ -146,8 +122,8 @@ for (i in seq_len(nrow(counies))) {
     new.deaths <- filter(item$deaths, c(1,-1))
     new.cases.smo <- filter(new.cases, rep(1,7)/7)##c(rep(3,7), rep(1,7))/28)
     new.deaths.smo <- filter(new.deaths, rep(1,7)/7)
-    with(item, plot(date, new.cases.smo * (1e6 / pop.), type='l', lty=1,
-                    xaxt="n", ylab="", ylim=c(0, ymax)))
+    with(item, plot(date, new.cases.smo * (1e6 / pop.), type='l', lwd=1.5,
+                    lty=1, xaxt="n", xlab="", ylab="", ylim=c(0, ymax)))
     ticks.at <- seq(as.Date("2020-03-01"), max(item$date+30), by = "months")
     labels <-  month.name[sapply(ticks.at, month)]
     labels <- sapply(labels, function(s) substr(s,1,1))
@@ -158,16 +134,9 @@ for (i in seq_len(nrow(counies))) {
     abline(h=0, col="#00000080")
     reveillons <- sapply(paste0(2019:2022, "-01-01"), as.Date)
     abline(v=reveillons, col="#66666688", lty=1)
-    with(item, points(date - 21, 100*new.deaths.smo * (1e6 / pop.), type='l', col="red", lty=1))
+    with(item, points(date - 21, 100*new.deaths.smo * (1e6 / pop.), type='l',
+                      col="red", lty=1, lwd=1.2))
     title(paste0(county., ", ", state., city.name.shown,
                  "\npop. ", round(pop., digits=3)))
-    ## Compute CFR
-    #legend(as.Date("2020-03-01"), max(new.cases.smo, na.rm=TRUE), col=1:2, legend=c("new cases", "new deaths (x 20)"), lty=1, cex=0.7)
 }
-
-
-
-vec <- c(rep(50,50), rep(0,50))
-filter(vec, c(2, 1, 0)/3)[48:53]
-filter(vec, c(0, 1, 2)/3)[48:53]
-
+dev.off()
