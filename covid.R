@@ -14,6 +14,7 @@ summary(as.Date(data$date))
 args <- commandArgs()
 
 # This dataset shows cumulative cases and deaths
+# so we need to process it down to *new* cases and *new* deaths.
 
 dt <- data
 setDT(dt)
@@ -71,10 +72,6 @@ for (i in seq_len(nrow(counties))) {
     pop. <- counties[i,]$population
     cat("county =", toString(county.), "\n")
     item <- dt[state==state.,][county==county., ][date >= "2020-03-15",]
-    ##item <- dt[state==state. & county==county., ]
-    ##with(item, plot(date, cases, type='o'))
-    ##
-    ## Is this correct even when dates are missing?
     new.cases <- filter(item$cases, c(1,-1))
     new.deaths <- filter(item$deaths, c(1,-1))
     new.cases.smo <- filter(new.cases, rep(1,7)/7)##c(rep(3,7), rep(1,7))/28)
@@ -114,10 +111,6 @@ for (i in seq_len(nrow(counties))) {
     pop. <- counties[i,]$population
     cat("county =", toString(county.), "\n")
     item <- dt[state==state.,][county==county., ][date >= "2020-03-15",]
-    ##item <- dt[state==state. & county==county., ]
-    ##with(item, plot(date, cases, type='o'))
-    ##
-    ## Is this correct even when dates are missing?
     new.cases <- filter(item$cases, c(1,-1))
     new.deaths <- filter(item$deaths, c(1,-1))
     new.cases.smo <- filter(new.cases, rep(1,7)/7)##c(rep(3,7), rep(1,7))/28)
@@ -130,7 +123,6 @@ for (i in seq_len(nrow(counties))) {
     Axis(item$date, at = ticks.at, labels = labels, side = 1, las = 1, cex.axis = 0.6)
     abline(h=1000*(0:20), col="#00000050")
     abline(h=5000*(0:20), col="#000000A0")
-    ##    abline(h=100*(0:20), col="#00000020")
     abline(h=0, col="#00000080")
     reveillons <- sapply(paste0(2019:2022, "-01-01"), as.Date)
     abline(v=reveillons, col="#66666688", lty=1)
