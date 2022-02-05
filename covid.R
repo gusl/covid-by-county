@@ -140,6 +140,3 @@ for (i in seq_len(nrow(counties))) {
                  "\npop. ", round(pop., digits=3)))
 }
 dev.off()
-
-# Plot delagged -----------------------------------------------------------
-
