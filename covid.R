@@ -57,7 +57,8 @@ this.dt[, new.cases.smo := ifelse(is.na(new.cases.smo), 0, new.cases.smo)]
 this.dt[, new.cases.smo.per.million := new.cases.smo * (1e6/population)]
 ymax <- max(this.dt[, this.dt$new.cases.smo.per.million])
 
-## -----
+# Plot simulatenous -----------------------------------------------------
+
 setDT(counties)
 counties <- counties[order(state.county)]
 par(mfrow = c(4, 3), mai=rep(0.4, 4), las=1, mgp=c(3,0.5,0))
@@ -95,7 +96,11 @@ for (i in seq_len(nrow(counties))) {
 }
 
 
-## DELAGGED by 21 days
+# Plot delagged -----------------------------------------------------------
+# Deaths plot is delagged by 21 days, because that's how long it takes from 
+# positive test to death, on average. This way the two curves should line up
+# well.
+
 filename <- paste0("~/covid-by-county_", today, "_delag21.png")
 res <- 100
 png(filename, res=res, width=1200, height=180*ceiling(nrow(counties) / 3))
@@ -135,3 +140,6 @@ for (i in seq_len(nrow(counties))) {
                  "\npop. ", round(pop., digits=3)))
 }
 dev.off()
+
+# Plot delagged -----------------------------------------------------------
+
