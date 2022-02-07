@@ -1,6 +1,23 @@
 library(data.table)
 library(curl)
-## library(optparse)
+library(optparse)
+
+pdf(NULL) ## Stop Rplots.pdf from generating
+
+suppressPackageStartupMessages(library("optparse"))
+option_list <- list( 
+    make_option(c("--lag"), type="integer", default=21, 
+                help="A numeric flag",
+                metavar="number"),
+    make_option("--set", default="USA", 
+                help = "Set of counties to plot: either 'USA' or 'CA'"),
+    make_option("--output_dir", default="~/Downloads", 
+                help = "Where to write plots. Default is ~/Downloads.",
+                "\nUse '.' for current directory."))
+
+parser <- OptionParser(option_list = option_list)
+args <- parse_args(parser) ## args = c("--sd=3", "--mean=1")
+## By default, it uses args = commandArgs(trailingOnly = TRUE)
 
 today <- substr(Sys.time(), 3, 10)
 filename <- paste0("~/Downloads/us-counties-",today,".csv")
@@ -11,7 +28,6 @@ dim(data)
 head(data)
 summary(as.Date(data$date))
 
-args <- commandArgs()
 
 # This dataset shows cumulative cases and deaths
 # so we need to process it down to *new* cases and *new* deaths.
@@ -24,26 +40,30 @@ dt[, cfr := deaths / cases]
 dt[, state.county := paste0(state, ":", county)]
 dt[, id := paste0(state, ":", county, ":", fips)]
 
-# counties <- data.frame(state=c("CA", "CA", "CA", "CA", "CA", "CA", "CA", "CA", "CA"),
-#                       county=c("San Francisco", "San Mateo", "Santa Clara", "Alameda", "Contra Costa", "Marin", "Sonoma", "Solano", "Napa"))#, "Santa Cruz"))
-# counties$population <- c(870044, 765935, 1922200, 1643700, 1133247, 260295, 501317, 438530, 137744)#, 273213)
-# counties$city.name <- paste(counties$county)
-counties <- data.frame(state=c("FL", "FL", "WA", ##"FL",
-                              "NY", "MA", "PA",
-                              "CA", "AZ", "GA",
-                              "CA", "IL", "TX"),
-                      county=c("Miami-Dade", "Broward", "King",## "Palm Beach",
-                               "New York City", "Suffolk", "Allegheny",
-                               "San Francisco", "Maricopa", "Fulton",
-                               "Los Angeles", "Cook", "Harris"))
-counties$population <- c(2717000, 1953000, 2253000, ##1497000,
-                        8419000, 803907, 1216000,
-                        874691, 4485000, 1064000,
-                        10040000, 5150000, 4713000)#, 273213)
-counties$city.name <- c("Miami", "Miami", "Seattle", ## Miami
-                       "", "Boston", "Pittsburgh",
-                       "", "Phoenix", "Atlanta",
-                       "", "Chicago", "Houston")
+if (args$set=="CA"){
+    counties <- data.frame(state=c("CA", "CA", "CA", "CA", "CA", "CA", "CA", "CA", "CA"),
+                           county=c("San Francisco", "San Mateo", "Santa Clara", "Alameda", "Contra Costa", "Marin", "Sonoma", "Solano", "Napa"))#, "Santa Cruz"))
+    counties$population <- c(870044, 765935, 1922200, 1643700, 1133247, 260295, 501317, 438530, 137744)#, 273213)
+    counties$city.name <- paste(counties$county)
+}
+if (args$set=="USA"){
+    counties <- data.frame(state=c("FL", "FL", "WA", ##"FL",
+                                   "NY", "MA", "PA",
+                                   "CA", "AZ", "GA",
+                                   "CA", "IL", "TX"),
+                           county=c("Miami-Dade", "Broward", "King",## "Palm Beach",
+                                    "New York City", "Suffolk", "Allegheny",
+                                    "San Francisco", "Maricopa", "Fulton",
+                                    "Los Angeles", "Cook", "Harris"))
+    counties$population <- c(2717000, 1953000, 2253000, ##1497000,
+                             8419000, 803907, 1216000,
+                             874691, 4485000, 1064000,
+                             10040000, 5150000, 4713000)#, 273213)
+    counties$city.name <- c("Miami", "Miami", "Seattle", ## Miami
+                            "", "Boston", "Pittsburgh",
+                            "", "Phoenix", "Atlanta",
+                            "", "Chicago", "Houston")
+}
 
 dt[, state.county := paste0(state, ":", county)]
 counties$state.county <- with(counties, paste0(state, ":", county))
@@ -58,7 +78,7 @@ this.dt[, new.cases.smo := ifelse(is.na(new.cases.smo), 0, new.cases.smo)]
 this.dt[, new.cases.smo.per.million := new.cases.smo * (1e6/population)]
 ymax <- max(this.dt[, this.dt$new.cases.smo.per.million])
 
-# Plot simulatenous -----------------------------------------------------
+# Plot simultanenous -----------------------------------------------------
 
 setDT(counties)
 counties <- counties[order(state.county)]
@@ -89,18 +109,20 @@ for (i in seq_len(nrow(counties))) {
     abline(v=reveillons, col="#66666688", lty=1)
     with(item, points(date, 100*new.deaths.smo * (1e6 / pop.), type='l', col="red", lty=1))
     title(paste0(county., ", ", state., city.name.shown,
-                "\npop. ", round(pop., digits=3)))
+                 "\npop. ", round(pop., digits=3)))
 }
 
 
 # Plot delagged -----------------------------------------------------------
-# Deaths plot is delagged by 21 days, because that's how long it takes from 
+# Deaths plot is delagged by --lag days, because that's how long it takes from 
 # positive test to death, on average. This way the two curves should line up
 # well.
 
-filename <- paste0("~/covid-by-county_", today, "_delag21.png")
+filename <- paste0("covid-by-county_", set, "_", today,
+                   "_delag", args$lag, ".png")
 res <- 100
-png(filename, res=res, width=1200, height=180*ceiling(nrow(counties) / 3))
+png(file.path(args$output_dir, filename), res=res,
+    width=1200, height=180*ceiling(nrow(counties) / 3))
 par(mfrow = c(nrow(counties) / 3, 3), mai=rep(0.5, 4), las=1, mgp=c(3,0.5,0))
 for (i in seq_len(nrow(counties))) {
     state. <- counties[i,]$state
@@ -126,7 +148,7 @@ for (i in seq_len(nrow(counties))) {
     abline(h=0, col="#00000080")
     reveillons <- sapply(paste0(2019:2022, "-01-01"), as.Date)
     abline(v=reveillons, col="#66666688", lty=1)
-    with(item, points(date - 21, 100*new.deaths.smo * (1e6 / pop.), type='l',
+    with(item, points(date - args$lag, 100*new.deaths.smo * (1e6 / pop.), type='l',
                       col="red", lty=1, lwd=1.2))
     title(paste0(county., ", ", state., city.name.shown,
                  "\npop. ", round(pop., digits=3)))
