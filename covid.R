@@ -12,8 +12,8 @@ option_list <- list(
     make_option("--set", default="USA", 
                 help = "Set of counties to plot: either 'USA' or 'CA'"),
     make_option("--output_dir", default="~/Downloads", 
-                help = "Where to write plots. Default is ~/Downloads.",
-                "\nUse '.' for current directory."))
+                help = paste0("Where to write plots. Default is ~/Downloads.",
+                              "\nUse '.' for current directory.")))
 
 parser <- OptionParser(option_list = option_list)
 args <- parse_args(parser) ## args = c("--sd=3", "--mean=1")
@@ -118,7 +118,7 @@ for (i in seq_len(nrow(counties))) {
 # positive test to death, on average. This way the two curves should line up
 # well.
 
-filename <- paste0("covid-by-county_", set, "_", today,
+filename <- paste0("covid-by-county_", args$set, "_", today,
                    "_delag", args$lag, ".png")
 res <- 100
 png(file.path(args$output_dir, filename), res=res,
