@@ -2,7 +2,12 @@ library(data.table)
 library(curl)
 library(optparse)
 
+
 pdf(NULL) ## Stop Rplots.pdf from generating
+
+##################
+## ToDo: pass a set states, report the top 12 counties in those states
+## ToDo: Use rmarkdown to make title and legend
 
 suppressPackageStartupMessages(library("optparse"))
 option_list <- list( 
